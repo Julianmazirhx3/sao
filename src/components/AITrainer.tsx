@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Save, FileText, Link, Tag, Trash2, TestTube, Phone, MessageSquare, Play, Target } from 'lucide-react';
+import { Plus, Save, FileText, Link, Tag, Trash2, TestTube, Phone, MessageSquare, Mail, Play, Target } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -29,6 +29,7 @@ export function AITrainer({ campaignId }: AITrainerProps) {
   const [testName, setTestName] = useState('');
   const [testCompany, setTestCompany] = useState('');
   const [testType, setTestType] = useState<'call' | 'sms' | 'whatsapp'>('call');
+  const [testEmail, setTestEmail] = useState('');
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [formData, setFormData] = useState({
     resource_type: 'note',
@@ -109,10 +110,18 @@ export function AITrainer({ campaignId }: AITrainerProps) {
   };
 
   const handleTestCampaign = async () => {
-    if (!testPhone.trim()) {
+    if (!testPhone.trim() && testType !== 'email') {
       setTestResult({
         success: false,
         message: 'Please enter a phone number to test'
+      });
+      return;
+    }
+    
+    if (testType === 'email' && !testEmail.trim()) {
+      setTestResult({
+        success: false,
+        message: 'Please enter an email address to test'
       });
       return;
     }
@@ -131,6 +140,7 @@ export function AITrainer({ campaignId }: AITrainerProps) {
           campaign_id: campaignId,
           channel: testType === 'call' ? 'voice' : testType,
           phone: testPhone,
+          email: testType === 'email' ? testEmail : undefined,
           name: testName || undefined,
           company_name: testCompany || undefined,
         }),
@@ -139,10 +149,11 @@ export function AITrainer({ campaignId }: AITrainerProps) {
       if (response.ok) {
         setTestResult({
           success: true,
-          message: `Test ${testType === 'call' ? 'voice call' : testType} initiated successfully! You should receive a ${testType === 'call' ? 'call' : 'message'} shortly.`
+          message: `Test ${testType === 'call' ? 'voice call' : testType} initiated successfully! You should receive a ${testType === 'call' ? 'call' : testType === 'email' ? 'email' : 'message'} shortly.`
         });
         setShowTestModal(false);
         setTestPhone('');
+        setTestEmail('');
         setTestName('');
         setTestCompany('');
       } else {
@@ -505,24 +516,42 @@ export function AITrainer({ campaignId }: AITrainerProps) {
                   <label className={`block text-sm font-medium mb-2 ${
                     theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
                   }`}>
-                    Test Phone Number
+                    {testType === 'email' ? 'Test Email Address' : 'Test Phone Number'}
                   </label>
-                  <input
-                    type="tel"
-                    value={testPhone}
-                    onChange={(e) => setTestPhone(e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                      theme === 'gold'
-                        ? 'border-yellow-400/30 bg-black/50 text-gray-200 placeholder-gray-500 focus:ring-yellow-400'
-                        : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
-                    }`}
-                    placeholder="+1234567890"
-                    required
-                  />
+                  {testType === 'email' ? (
+                    <input
+                      type="email"
+                      value={testEmail}
+                      onChange={(e) => setTestEmail(e.target.value)}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                        theme === 'gold'
+                          ? 'border-yellow-400/30 bg-black/50 text-gray-200 placeholder-gray-500 focus:ring-yellow-400'
+                          : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                      }`}
+                      placeholder="test@example.com"
+                      required
+                    />
+                  ) : (
+                    <input
+                      type="tel"
+                      value={testPhone}
+                      onChange={(e) => setTestPhone(e.target.value)}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                        theme === 'gold'
+                          ? 'border-yellow-400/30 bg-black/50 text-gray-200 placeholder-gray-500 focus:ring-yellow-400'
+                          : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                      }`}
+                      placeholder="+1234567890"
+                      required
+                    />
+                  )}
                   <p className={`text-xs mt-1 ${
                     theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
                   }`}>
-                    Enter your phone number to receive a test (required)
+                    {testType === 'email' 
+                      ? 'Enter your email address to receive a test email (required)'
+                      : 'Enter your phone number to receive a test (required)'
+                    }
                   </p>
                 </div>
 
@@ -569,11 +598,12 @@ export function AITrainer({ campaignId }: AITrainerProps) {
                   }`}>
                     Test Type
                   </label>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {[
                       { key: 'call', label: 'Call', icon: Phone },
                       { key: 'sms', label: 'SMS', icon: MessageSquare },
-                      { key: 'whatsapp', label: 'WhatsApp', icon: MessageSquare }
+                      { key: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
+                      { key: 'email', label: 'Email', icon: Mail }
                     ].map((type) => {
                       const Icon = type.icon;
                       return (
@@ -623,7 +653,7 @@ export function AITrainer({ campaignId }: AITrainerProps) {
                   </button>
                   <button
                     onClick={handleTestCampaign}
-                    disabled={testing || !testPhone.trim()}
+                    disabled={testing || (testType === 'email' ? !testEmail.trim() : !testPhone.trim())}
                     className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                       theme === 'gold'
                         ? 'gold-gradient text-black hover-gold'
@@ -638,7 +668,7 @@ export function AITrainer({ campaignId }: AITrainerProps) {
                     ) : (
                       <div className="flex items-center justify-center">
                         <Play className="h-4 w-4 mr-2" />
-                        Start Test
+                        Start Test {type.key === 'call' ? 'Call' : type.key === 'email' ? 'Email' : 'Message'}
                       </div>
                     )}
                   </button>

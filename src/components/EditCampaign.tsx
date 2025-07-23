@@ -81,7 +81,7 @@ export default function EditCampaign() {
         .eq('is_active', true);
 
       if (!channels || channels.length === 0) {
-        errors.push('You must connect at least one communication channel before publishing a campaign. Go to Settings > Channels to set up your integrations.');
+        errors.push('You must connect at least one communication channel (Voice, SMS, WhatsApp, or Email) before publishing a campaign. Go to Settings > Channels to set up your integrations.');
       }
 
       // Check if campaign has leads

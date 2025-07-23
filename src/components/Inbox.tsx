@@ -10,6 +10,7 @@ import {
   Search, 
   Calendar, 
   MessageSquare, 
+  Mail,
   Phone, 
   ExternalLink, 
   User, 
@@ -128,6 +129,8 @@ export function Inbox() {
       case 'sms':
       case 'whatsapp':
         return MessageSquare;
+      case 'email':
+        return Mail;
       default:
         return MessageSquare;
     }

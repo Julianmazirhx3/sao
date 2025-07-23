@@ -14,6 +14,7 @@ import {
   Users, 
   Phone, 
   MessageSquare, 
+  Mail,
   Calendar,
   BarChart3,
   Activity,
@@ -166,6 +167,7 @@ export function LeadsTracker() {
           calls: activityData?.filter(a => a.type === 'call' || a.type === 'vapi').length || 0,
           sms: activityData?.filter(a => a.type === 'sms').length || 0,
           whatsapp: activityData?.filter(a => a.type === 'whatsapp').length || 0,
+          emails: activityData?.filter(a => a.type === 'email').length || 0,
           bookings: bookingsData?.length || 0,
         };
 
@@ -188,13 +190,15 @@ export function LeadsTracker() {
           const calls = dayConversations.filter(c => c.channel === 'vapi').length;
           const sms = dayConversations.filter(c => c.channel === 'sms').length;
           const whatsapp = dayConversations.filter(c => c.channel === 'whatsapp').length;
+          const emails = dayConversations.filter(c => c.channel === 'email').length;
 
           dailyActivity.push({
             date: dateStr,
             calls,
             sms,
             whatsapp,
-            total: calls + sms + whatsapp,
+            emails,
+            total: calls + sms + whatsapp + emails,
           });
         }
 
@@ -291,6 +295,8 @@ export function LeadsTracker() {
       case 'sms':
       case 'whatsapp':
         return MessageSquare;
+      case 'email':
+        return Mail;
       case 'booking':
         return Calendar;
       case 'reply':
@@ -319,7 +325,7 @@ export function LeadsTracker() {
   const totalMetrics = performanceData.reduce((acc, performance) => ({
     totalLeads: acc.totalLeads + performance.totalLeads,
     totalCalls: acc.totalCalls + performance.activityStats.calls,
-    totalMessages: acc.totalMessages + performance.activityStats.sms + performance.activityStats.whatsapp,
+    totalMessages: acc.totalMessages + performance.activityStats.sms + performance.activityStats.whatsapp + (performance.activityStats.emails || 0),
     totalBookings: acc.totalBookings + performance.activityStats.bookings,
   }), { totalLeads: 0, totalCalls: 0, totalMessages: 0, totalBookings: 0 });
 
@@ -739,13 +745,13 @@ export function LeadsTracker() {
                     <span className={`text-xs font-medium ${
                       theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
                     }`}>
-                      Messages
+                      Messages + Emails
                     </span>
                   </div>
                   <p className={`text-xl font-bold ${
                     theme === 'gold' ? 'text-yellow-400' : 'text-purple-600'
                   }`}>
-                    {performance.activityStats.sms + performance.activityStats.whatsapp}
+                    {performance.activityStats.sms + performance.activityStats.whatsapp + (performance.activityStats.emails || 0)}
                   </p>
                 </div>
 

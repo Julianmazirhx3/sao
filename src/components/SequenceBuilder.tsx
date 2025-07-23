@@ -38,6 +38,8 @@ interface SequenceStep {
   provider: string;
   sender_id: string | null;
   delay_hours: number;
+  email_subject?: string;
+  email_template?: string;
 }
 
 interface SequenceBuilderProps {
@@ -104,6 +106,8 @@ export function SequenceBuilder({ campaignId, onSave, campaignStatus = 'draft' }
             provider: channel?.provider || 'unknown',
             sender_id: channel?.sender_id || null,
             delay_hours: Math.floor((step.wait_seconds || 0) / 3600),
+            email_subject: step.email_subject || '',
+            email_template: step.email_template || '',
           };
         });
         setSequenceSteps(steps);
@@ -126,6 +130,8 @@ export function SequenceBuilder({ campaignId, onSave, campaignStatus = 'draft' }
       provider: channel.provider,
       sender_id: channel.sender_id,
       delay_hours: sequenceSteps.length === 0 ? 0 : 24,
+      email_subject: '',
+      email_template: '',
     };
 
     setSequenceSteps([...sequenceSteps, newStep]);
@@ -179,7 +185,11 @@ export function SequenceBuilder({ campaignId, onSave, campaignStatus = 'draft' }
         step_number: step.step_number,
         type: step.channel_type === 'voice' ? 'call' : step.channel_type,
         wait_seconds: step.delay_hours * 3600,
-        prompt: `You are an AI appointment setter. Contact leads via ${step.channel_type} and book qualified appointments.`,
+        prompt: step.channel_type === 'email' 
+          ? `Email outreach for ${step.channel_type}` 
+          : `You are an AI appointment setter. Contact leads via ${step.channel_type} and book qualified appointments.`,
+        email_subject: step.email_subject || null,
+        email_template: step.email_template || null,
       }));
 
       const { error } = await supabase
@@ -372,7 +382,59 @@ export function SequenceBuilder({ campaignId, onSave, campaignStatus = 'draft' }
                       <Plus className="h-4 w-4" />
                     </button>
                   )}
+                  
+                  {step.channel_type === 'email' && (
+                    <div>
+                      <label className={`block text-sm font-medium mb-2 ${
+                        theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        Email Subject
+                      </label>
+                      <input
+                        type="text"
+                        value={step.email_subject || ''}
+                        onChange={(e) => updateStep(index, 'email_subject', e.target.value)}
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                          theme === 'gold'
+                            ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                            : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                        }`}
+                        placeholder="Quick question about {{company_name}}"
+                      />
+                      <p className={`text-xs mt-1 ${
+                        theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                      }`}>
+                        Use {{name}}, {{company_name}}, etc. for personalization
+                      </p>
+                    </div>
+                  )}
                 </div>
+                
+                {step.channel_type === 'email' && (
+                  <div className="mb-4">
+                    <label className={`block text-sm font-medium mb-2 ${
+                      theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
+                      Email Template
+                    </label>
+                    <textarea
+                      rows={6}
+                      value={step.email_template || ''}
+                      onChange={(e) => updateStep(index, 'email_template', e.target.value)}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                        theme === 'gold'
+                          ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                          : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                      }`}
+                      placeholder="Hi {{name}},&#10;&#10;I noticed {{company_name}} is growing rapidly...&#10;&#10;Would you be interested in a quick 15-minute call to discuss how we can help?&#10;&#10;Best regards,&#10;[Your Name]"
+                    />
+                    <p className={`text-xs mt-1 ${
+                      theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                    }`}>
+                      Use {{name}}, {{company_name}}, {{job_title}}, {{calendar_url}} for personalization
+                    </p>
+                  </div>
+                )}
               </div>
             );
           })}

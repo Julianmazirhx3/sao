@@ -44,6 +44,12 @@ interface ChannelFormData {
   from_email?: string;
   from_name?: string;
   
+  // GSuite OAuth fields
+  gsuite_client_id?: string;
+  gsuite_client_secret?: string;
+  gsuite_refresh_token?: string;
+  gsuite_access_token?: string;
+  
   // Common fields
   usage_count: number;
   daily_limit: number;
@@ -74,6 +80,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
 
   const emailProviders = [
     { value: 'smtp', label: 'SMTP (Generic)' },
+    { value: 'gsuite', label: 'Google Workspace (GSuite)' },
     { value: 'sendgrid', label: 'SendGrid' },
     { value: 'mailgun', label: 'Mailgun' },
     { value: 'gmail', label: 'Gmail' },
@@ -215,12 +222,28 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
         case 'email':
           credentials = {
             email_provider: formData.email_provider,
-            smtp_host: formData.smtp_host,
-            smtp_port: formData.smtp_port ? parseInt(formData.smtp_port) : null,
+          
+          if (formData.email_provider === 'gsuite') {
+            if (!formData.gsuite_client_id?.trim()) errors.push('GSuite Client ID is required');
+            if (!formData.gsuite_client_secret?.trim()) errors.push('GSuite Client Secret is required');
+            if (!formData.gsuite_refresh_token?.trim()) errors.push('GSuite Refresh Token is required');
+          } else if (formData.email_provider === 'smtp') {
             email_username: formData.email_username,
-            email_password: formData.email_password,
             from_name: formData.from_name,
           };
+          
+          if (formData.email_provider === 'gsuite') {
+            credentials.gsuite_client_id = formData.gsuite_client_id;
+            credentials.gsuite_client_secret = formData.gsuite_client_secret;
+            credentials.gsuite_refresh_token = formData.gsuite_refresh_token;
+            credentials.gsuite_access_token = formData.gsuite_access_token;
+          } else {
+            credentials.email_password = formData.email_password;
+          }
+          
+            if (!formData.email_password?.trim()) errors.push('Email Password is required');
+          } else {
+            if (!formData.email_password?.trim()) errors.push('Email Password is required');
           sender_id = formData.from_email || null;
           break;
       }
@@ -228,7 +251,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
       const channelData = {
         user_id: user.id,
         provider: formData.channel_type === 'voice' ? 'vapi' : 
-                 formData.channel_type === 'email' ? 'smtp' : 'twilio',
+                 formData.channel_type === 'email' ? (formData.email_provider || 'smtp') : 'twilio',
         channel_type: formData.channel_type,
         credentials,
         sender_id,
@@ -570,6 +593,109 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                     placeholder="587"
                     required
                   />
+                </div>
+              </>
+            )}
+
+            {formData.email_provider === 'gsuite' && (
+              <>
+                <div className={`p-4 rounded-lg ${
+                  theme === 'gold'
+                    ? 'bg-yellow-400/10 border border-yellow-400/20'
+                    : 'bg-blue-50 border border-blue-200'
+                }`}>
+                  <h4 className={`text-sm font-medium mb-2 ${
+                    theme === 'gold' ? 'text-yellow-400' : 'text-blue-700'
+                  }`}>
+                    GSuite OAuth Setup
+                  </h4>
+                  <p className={`text-sm ${
+                    theme === 'gold' ? 'text-gray-400' : 'text-blue-600'
+                  }`}>
+                    You'll need to set up OAuth credentials in Google Cloud Console and obtain the required tokens.
+                  </p>
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Client ID *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.gsuite_client_id || ''}
+                    onChange={(e) => handleInputChange('gsuite_client_id', e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                      theme === 'gold'
+                        ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                        : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                    }`}
+                    placeholder="your-client-id.googleusercontent.com"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Client Secret *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPasswords.gsuite_client_secret ? 'text' : 'password'}
+                      value={formData.gsuite_client_secret || ''}
+                      onChange={(e) => handleInputChange('gsuite_client_secret', e.target.value)}
+                      className={`w-full px-3 py-2 pr-10 border rounded-lg focus:outline-none focus:ring-2 ${
+                        theme === 'gold'
+                          ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                          : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                      }`}
+                      placeholder="Client Secret"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => togglePasswordVisibility('gsuite_client_secret')}
+                      className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${
+                        theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
+                      }`}
+                    >
+                      {showPasswords.gsuite_client_secret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Refresh Token *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPasswords.gsuite_refresh_token ? 'text' : 'password'}
+                      value={formData.gsuite_refresh_token || ''}
+                      onChange={(e) => handleInputChange('gsuite_refresh_token', e.target.value)}
+                      className={`w-full px-3 py-2 pr-10 border rounded-lg focus:outline-none focus:ring-2 ${
+                        theme === 'gold'
+                          ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                          : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                      }`}
+                      placeholder="Refresh Token"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => togglePasswordVisibility('gsuite_refresh_token')}
+                      className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${
+                        theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
+                      }`}
+                    >
+                      {showPasswords.gsuite_refresh_token ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
               </>
             )}

@@ -101,7 +101,7 @@ export function Settings() {
           {activeTab === 'profile' && (
             <div className="space-y-6">
               <div>
-                <h3 className={`text-lg font-semibold mb-4 ${
+                          {channel.sender_id && `From: ${channel.channel_type === 'email' ? channel.sender_id : channel.sender_id.substring(0, 15) + '...'}`}
                   theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
                 }`}>
                   Profile Information

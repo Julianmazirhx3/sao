@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabase';
-import { Phone, MessageSquare, Mail, ArrowUpRight, ArrowDownLeft, Play, Clock } from 'lucide-react';
+import { Phone, MessageSquare, Mail, ArrowUpRight, ArrowDownLeft, Play, Clock, ExternalLink } from 'lucide-react';
 
 interface ConversationHistory {
   id: string;
   message_type: 'call' | 'sms' | 'whatsapp' | 'email';
   direction: 'inbound' | 'outbound';
   content: string | null;
+  email_subject?: string | null;
+  email_body?: string | null;
   response_received: boolean;
   call_duration: number | null;
   call_recording_url: string | null;
@@ -194,6 +196,26 @@ export function MessageLogs({ leadId, campaignId }: MessageLogsProps) {
                 }`}>
                   {message.content}
                 </p>
+              )}
+              
+              {/* Email-specific content */}
+              {message.message_type === 'email' && message.email_subject && (
+                <div className={`mt-2 p-2 rounded border ${
+                  theme === 'gold' ? 'border-yellow-400/20 bg-yellow-400/5' : 'border-gray-200 bg-gray-50'
+                }`}>
+                  <div className={`text-xs font-medium ${
+                    theme === 'gold' ? 'text-yellow-400' : 'text-gray-700'
+                  }`}>
+                    Subject: {message.email_subject}
+                  </div>
+                  {message.email_body && (
+                    <div className={`text-xs mt-1 ${
+                      theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+                    }`}>
+                      {message.email_body.substring(0, 100)}...
+                    </div>
+                  )}
+                </div>
               )}
               
               {message.response_received && (
